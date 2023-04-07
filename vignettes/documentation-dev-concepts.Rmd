@@ -1,0 +1,28 @@
+---
+title: "Documentation of Dev-concepts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{documentation-dev-concepts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Github-actions workflow for shinyapps.io
+
+The aim is to stup a configuration that customizes Github actions in a way that
+allows to deploy the shiny App to shinyapps.io automatically. Specifically:
+
+1. The main branch reflects the App in production state
+2. Any PR reflects various tests i.e. different dev-states of the App
+3. Once a PR gets merged into main, the production App is updates with the 
+PR-feature and automatically re-deployed
+4. The testing/dev-App versions are also automatically deployed to hidden links
+5. Eventually, a testing workflow a-la cypress can be employed onto the 
+different test/dev-App versions
