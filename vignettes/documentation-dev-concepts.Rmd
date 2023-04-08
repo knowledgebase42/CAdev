@@ -26,3 +26,179 @@ PR-feature and automatically re-deployed
 4. The testing/dev-App versions are also automatically deployed to hidden links
 5. Eventually, a testing workflow a-la cypress can be employed onto the 
 different test/dev-App versions
+
+### Useful notes
+
+- https://blog.rmhogervorst.nl/blog/2021/02/27/deploy-to-shinyapps-io-from-github-actions/
+
+- https://www.r-bloggers.com/2021/02/deploy-to-shinyapps-io-from-github-actions/
+
+
+### Extracting `shiny.io` secrets and defining useful environment variables
+
+1.Via a project/package local `.Renviron` with the following content:
+```{bash, eval = FALSE}
+# R_LIBS_USER=~/Dropbox/libraries/R/4.0
+SHINY_ACC_NAME=cologne-analytics
+TOKEN=315FD675C450786E52E88588B0554D83
+SECRET=yXqZjbaYUe/oYvwEStsRh7inKQ8o5w21ys5IgbGg
+MASTERNAME=TaskSVVdcDB
+TESTNAME=TaskSVVdcDBtesting
+```
+
+__*Note:*__
+
+The first line needs to be run if the setup is tested locally on a machine. If 
+the script is tested (locally) in a docker container this line has to be 
+commented out.
+
+2.Via Github secrets/variables either organization or repository wide:
+
+- https://docs.github.com/en/actions/security-guides/encrypted-secrets -> `{{ secrets.mysupersecret }}`
+- https://docs.github.com/en/actions/learn-github-actions/variables -> `{{ vars.myvars }}`
+
+### Setting up a deployment script
+
+Use the following `R`-template inside directly `./` i.e. at the `app.R` level:
+```{r, eval = FALSE}
+# A function to stop the script when one of the variables cannot be found.
+# Also to strip quotation marks from the secrets when you supplied them
+# (maybe it is just easier to never use them).
+error_on_missing_name <- function(name) {
+  var <- Sys.getenv(name, unset = NA)
+  if (is.na(var)) {
+    stop(paste0("cannot find ", name, " !"), call. = FALSE)
+  }
+  gsub("\"", "", var)
+}
+# Authenticate
+rsconnect::setAccountInfo(
+  name = error_on_missing_name("SHINY_ACC_NAME"),
+  token = error_on_missing_name("TOKEN"),
+  secret = error_on_missing_name("SECRET")
+)
+# Deploy the application.
+rsconnect::deployApp(forceUpdate = TRUE)
+#   appFiles = c(
+#     "app.R" # , you can specify which files to deploy,
+#     # or keep this NULL to deploy everything
+#   ),
+#   appName = error_on_missing_name("MASTERNAME"),
+#   appTitle = "shinyapplication"
+# )
+```
+
+### Dockerfile
+
+Use the following template Dockerfile:
+
+```{bash, eval = FALSE}
+FROM rocker/shiny-verse
+RUN install2.r rsconnect golem htmltools config writexl shiny.semantic gargoyle
+RUN install2.r reactable magrittr plotly auth0 hunspell spelling
+RUN installGithub.r TASK-no/TaskAnalyticsTB \
+&& rm -rf /tmp/downloaded_packages/
+WORKDIR /home/TaskSVVdcDB
+COPY app.R app.R
+COPY deploy.R deploy.R
+COPY DESCRIPTION DESCRIPTION
+COPY NAMESPACE NAMESPACE
+ADD data data
+ADD inst inst
+ADD R R
+CMD Rscript deploy.R
+```
+
+### Testing part I
+
+Source `deploy.R` inside `golem::get_golem_wd()` (environment vars must be read
+with first line). Then, check the container setups by running the following in
+sudo:
+```{bash, eval = FALSE}
+IMAGENAME=<NAMETHISSOMETHING>
+sudo docker build -t $IMAGENAME .
+sudo docker run --env-file .Renviron $IMAGENAME
+sudo docker ps
+```
+Literally, this deploys the App on `shinyapps.io`!
+
+### Create the Github actions profile
+
+Create the directory `.github/workflows` with two files inside:
+```{bash, eval = FALSE}
+name: Run on push master, main
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: Ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # build the docker image and give it the name main
+      - name: Build image
+        run: docker build -t main .
+      # run the docker image supply the secrets from the github secrets store.
+      - name: execute
+        run: >
+          docker run
+          -e SHINY_ACC_NAME=${{ vars.SHINY_ACC_NAME }}
+          -e TOKEN=${{secrets.TOKEN}}
+          -e SECRET=${{secrets.SECRET}}
+          -e MASTERNAME=${{vars.MASTER_NAME}}
+          main
+```
+```{bash, eval = FALSE}
+
+name: PR
+
+# Run on all pull requests
+on:
+  pull_request: {}
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: Ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Build image
+      - name: Build image
+        run: docker build -t pullrequestimage .
+      # run the image (but supply the TESTNAME in stead of MASTERNAME, so the
+      # app ends up in a different place.
+      - name: execute
+        run: >
+          docker run
+          -e SHINY_ACC_NAME=${{vars.SHINY_ACC_NAME}}
+          -e TOKEN=${{secrets.TOKEN}}
+          -e SECRET=${{secrets.SECRET}}
+          -e MASTERNAME=${{vars.TEST_NAME}}
+          pullrequestimage
+
+```
+
+
