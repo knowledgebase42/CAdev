@@ -59,7 +59,8 @@ commented out.
 
 ### Setting up a deployment script
 
-Use the following `R`-template inside directly `./` i.e. at the `app.R` level:
+Use the following `R`-template inside directly `./` e.g. `deploy.R` at the 
+`app.R` level:
 ```{r, eval = FALSE}
 # A function to stop the script when one of the variables cannot be found.
 # Also to strip quotation marks from the secrets when you supplied them
@@ -121,6 +122,18 @@ sudo docker run --env-file .Renviron $IMAGENAME
 sudo docker ps
 ```
 Literally, this deploys the App on `shinyapps.io`!
+
+Ease the testing by automation of docker deployment with a `autodeploy.sh`:
+```{bash, eval = FALSE}
+#!/bin/bash
+IMAGENAME=golemautodeploy
+sudo docker build -t $IMAGENAME .
+sudo docker run --env-file .Renviron $IMAGENAME
+sudo docker ps
+```
+Run `chmdod +x autodeploy.sh` and `./autodeploy.sh`; if repeated regularly one
+can even define an alias or a command!
+
 
 ### Create the Github actions profile
 
