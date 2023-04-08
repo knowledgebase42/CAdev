@@ -215,3 +215,13 @@ jobs:
 ```
 
 
+## Set up `auth0` for authentication
+
+### Notes/resources
+
+- the R package `https://curso-r.github.io/auth0/`
+- the Github issue explaining the workflow with `{golem}` https://github.com/ThinkR-open/golem/issues/327
+
+### In details some of the account settings
+
+...
