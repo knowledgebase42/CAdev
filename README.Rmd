@@ -18,44 +18,19 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of `CAdev` is to summarize some development concepts for shiny Apps in
+The goal of `{CAdev}` is to summarize some development concepts for shiny Apps in
 production settings. This includes the setup of a GitHub-actions workflow for
 production/development branches and remote hosting using `shinyapps.io`, an
 authentication client setup and other things.
 
-The summary is equipped with a golem hook setup, to ease the startup of new 
+The summary is equipped with a `{golem}` hook setup, to ease the startup of new 
 projects and quick prototyping for clients of Cologne analytics.
 
 ## Installation
 
-You can install the development version of CAdev from [GitHub](https://github.com/) with:
+You can install the development version of `{CAdev}` from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("ilyaZar/CAdev")
 ```
-
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-library(CAdev)
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
